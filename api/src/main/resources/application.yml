@@ -2,7 +2,7 @@ spring.application.name: employee-api
 server.port: 8111
 spring:
   datasource:
-    url: jdbc:h2:mem:testdb;
+    url: jdbc:h2:mem:employee;
     driver-class-name: org.h2.Driver
     username: sa
     password:
