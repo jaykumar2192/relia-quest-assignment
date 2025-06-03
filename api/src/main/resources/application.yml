@@ -1,2 +1,19 @@
 spring.application.name: employee-api
 server.port: 8111
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+  h2:
+    console:
+      enabled: true
+logging:
+  level:
+    root: ERROR
+    com.reliaquest: DEBUG
