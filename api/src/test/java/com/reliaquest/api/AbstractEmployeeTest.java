@@ -4,8 +4,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.reliaquest.api.data.EmployeeRequest;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import net.datafaker.Faker;
@@ -24,9 +26,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @TestPropertySource(locations = "classpath:application-test.yml")
 public class AbstractEmployeeTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractEmployeeTest.class);
   public static final String EMAIL_TEMPLATE = "%s@company.com";
-  Faker faker = new Faker(Locale.getDefault());
+  private static final Logger logger = LoggerFactory.getLogger(AbstractEmployeeTest.class);
 
   @Autowired
   protected MockMvc mockMvc;
@@ -34,6 +35,7 @@ public class AbstractEmployeeTest {
   @Autowired
   protected ObjectMapper objectMapper;
 
+  Faker faker = new Faker(Locale.getDefault());
 
   protected MvcResult createEmployeeRequest() {
     try {
@@ -56,8 +58,7 @@ public class AbstractEmployeeTest {
         .age(faker.number().numberBetween(16, 60))
         .salary(faker.number().numberBetween(10000, 90000))
         .title(faker.job().title())
-        .email(EMAIL_TEMPLATE.formatted(
-            faker.twitter().userName().toLowerCase()))
+        .email(EMAIL_TEMPLATE.formatted(faker.twitter().userName().toLowerCase()))
         .build();
   }
 
@@ -67,8 +68,31 @@ public class AbstractEmployeeTest {
     } catch (JsonProcessingException e) {
       logger.error(
           "AbstractEmployeeTest#convertEmployeeObjectToJson Error converting Employee Object:{} to Json",
-          employeeRequest, e);
+          employeeRequest,
+          e);
       return null;
     }
   }
+
+  protected EmployeeRequest convertJsonToEmployeeRequest(MvcResult r) {
+    try {
+      String jsonResponse = r.getResponse().getContentAsString();
+      return objectMapper.readValue(jsonResponse, EmployeeRequest.class);
+    } catch (Exception e) {
+      logger.error("AbstractEmployeeTest#convertJsonToObject Error converting Json to Object", e);
+      return null;
+    }
+  }
+
+  protected List<EmployeeRequest> convertStringToEmployeeRequestList(String responseString) {
+    try {
+      return objectMapper.readValue(responseString, new TypeReference<List<EmployeeRequest>>() {
+      });
+    } catch (Exception e) {
+      logger.error("AbstractEmployeeTest#convertJsonToObject Error converting Json to Object", e);
+      return null;
+    }
+  }
+
+
 }

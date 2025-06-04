@@ -10,6 +10,14 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
+/**
+ * Entity class representing an employee in the system.
+ * <p>
+ * This class is mapped to the "employees" table in the database using JPA annotations. It includes
+ * basic employee attributes like ID, name, salary, age, title, and email. Lombok annotations are
+ * used to reduce boilerplate code by generating getters, setters, constructors, and the toString
+ * method automatically.
+ */
 @Entity
 @Table(name = "employees")
 @Data
@@ -19,12 +27,35 @@ import lombok.ToString;
 @ToString
 public class EmployeeEntity {
 
-    @Id
-    private UUID id;
+  /**
+   * The unique identifier for the employee.
+   */
+  @Id
+  private UUID id;
 
-    private String name;
-    private Integer salary;
-    private Integer age;
-    private String title;
-    private String email;
+  /**
+   * The full name of the employee.
+   */
+  private String name;
+
+
+  /**
+   * The salary of the employee.
+   */
+  private Integer salary;
+
+  /**
+   * The age of the employee.
+   */
+  private Integer age;
+
+  /**
+   * The job title or designation of the employee.
+   */
+  private String title;
+
+  /**
+   * The email address of the employee.
+   */
+  private String email;
 }

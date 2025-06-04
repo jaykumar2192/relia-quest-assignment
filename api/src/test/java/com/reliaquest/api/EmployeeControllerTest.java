@@ -1,5 +1,6 @@
 package com.reliaquest.api;
 
+import static com.reliaquest.api.utils.EmployeeConstants.DUPLICATE_EMPLOYEE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -33,12 +34,32 @@ class EmployeeControllerTest extends AbstractEmployeeTest {
         .andExpect(status().isOk())
         .andReturn();
     Assertions.assertThat(result.getResponse().getStatus()).isEqualTo(200);
-    EmployeeRequest savedEmp = convertJsonToObject(result);
+    EmployeeRequest savedEmp = convertJsonToEmployeeRequest(result);
 
     result = mockMvc.perform(get("/" + savedEmp.getId()))
-        .andExpect(status().isOk()).andReturn();
-    savedEmp = convertJsonToObject(result);
+        .andExpect(status().isOk())
+        .andReturn();
+    savedEmp = convertJsonToEmployeeRequest(result);
     Assertions.assertThat(savedEmp).isEqualTo(employee);
+  }
+
+  @Test
+  void testCreateEmployeeWithDuplicateId() throws Exception {
+    EmployeeRequest employee = createSampleEmployee();
+    MvcResult result = mockMvc.perform(post("/")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(employee)))
+        .andExpect(status().isOk())
+        .andReturn();
+    Assertions.assertThat(result.getResponse().getStatus()).isEqualTo(200);
+
+    result = mockMvc.perform(post("/")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(employee)))
+        .andExpect(status().is5xxServerError())
+        .andReturn();
+    Assertions.assertThat(result.getResponse().getHeader("X-Error-Message"))
+        .contains(DUPLICATE_EMPLOYEE);
   }
 
   @Test
@@ -51,55 +72,72 @@ class EmployeeControllerTest extends AbstractEmployeeTest {
         .andReturn();
     Assertions.assertThat(result.getResponse().getStatus()).isEqualTo(200);
     result = mockMvc.perform(delete("/" + employee.getId()))
-        .andExpect(status().isOk()).andReturn();
+        .andExpect(status().isOk())
+        .andReturn();
     String jsonResponse = result.getResponse().getContentAsString();
     Assertions.assertThat(jsonResponse).isEqualTo("Deleted");
   }
 
   @Test
-  void testDeleteEmployeeWhichIsNotPresent() throws Exception {
+  void testDeleteEmployeeWhenNotPresent() throws Exception {
     MvcResult result = mockMvc.perform(delete("/" + UUID.randomUUID()))
-        .andExpect(status().is5xxServerError()).andReturn();
+        .andExpect(status().is5xxServerError())
+        .andReturn();
     Assertions.assertThat(result.getResponse().getStatus()).isEqualTo(500);
   }
 
   @Test
   void testConcurrentlyCreateEmployeesAndGetHighestSalary() throws Exception {
 
-    CompletableFuture<MvcResult>[] createEmployeesRequest =
-        IntStream.range(0, 20)
-            .mapToObj(i -> CompletableFuture.supplyAsync(() -> createEmployeeRequest()))
-            .toArray(CompletableFuture[]::new);
+    CompletableFuture<MvcResult>[] createEmployeesRequest = IntStream.range(0, 20)
+        .mapToObj(i -> CompletableFuture.supplyAsync(() -> createEmployeeRequest()))
+        .toArray(CompletableFuture[]::new);
 
-    List<MvcResult> allResult =
-        Arrays.stream(createEmployeesRequest)
-            .map(CompletableFuture::join)
-            .toList();
+    List<MvcResult> allResult = Arrays.stream(createEmployeesRequest)
+        .map(CompletableFuture::join)
+        .toList();
 
-    Optional<EmployeeRequest> maxEmployeeSalary = allResult.stream().map(r -> {
-      Assertions.assertThat(r.getResponse().getStatus()).isEqualTo(200);
-      return convertJsonToObject(r);
-    }).max(Comparator.comparingInt(e -> {
-      Assertions.assertThat(e).isNotNull();
-      return e.getSalary();
-    }));
+    Assertions.assertThat(allResult).hasSize(20);
+
+    MvcResult result = mockMvc.perform(get("/"))
+        .andExpect(status().isOk())
+        .andReturn();
+
+    List<EmployeeRequest> listEmployeeRequest = convertStringToEmployeeRequestList(
+        result.getResponse().getContentAsString());
+
+    Optional<EmployeeRequest> maxEmployeeSalary = listEmployeeRequest.stream()
+        .max(Comparator.comparingInt(e -> {
+          Assertions.assertThat(e).isNotNull();
+          return e.getSalary();
+        }));
 
     Assertions.assertThat(maxEmployeeSalary).isPresent();
-    MvcResult result = mockMvc.perform(get("/highestSalary"))
-        .andExpect(status().isOk()).andReturn();
+    result = mockMvc.perform(get("/highestSalary"))
+        .andExpect(status().isOk())
+        .andReturn();
     Integer maxSalary = Integer.parseInt(result.getResponse().getContentAsString());
-
     Assertions.assertThat(maxSalary).isEqualTo(maxEmployeeSalary.get().getSalary());
   }
 
-  protected EmployeeRequest convertJsonToObject(MvcResult r) {
-    try {
-      String jsonResponse = r.getResponse().getContentAsString();
-      return objectMapper.readValue(jsonResponse, EmployeeRequest.class);
-    } catch (Exception e) {
-      logger.error("EmployeeControllerTest#convertJsonToObject Error converting Json to Object",
-          e);
-      return null;
-    }
+  @Test
+  void testGetTopTenHighestSalaryEmployees() throws Exception {
+
+    CompletableFuture<MvcResult>[] createEmployeesRequest = IntStream.range(0, 20)
+        .mapToObj(i -> CompletableFuture.supplyAsync(() -> createEmployeeRequest()))
+        .toArray(CompletableFuture[]::new);
+
+    List<MvcResult> allResult = Arrays.stream(createEmployeesRequest)
+        .map(CompletableFuture::join)
+        .toList();
+
+    Assertions.assertThat(allResult).hasSize(20);
+    MvcResult result = mockMvc.perform(get("/topTenHighestEarningEmployeeNames"))
+        .andExpect(status().isOk())
+        .andReturn();
+    String allEmployeesName = result.getResponse().getContentAsString();
+    Assertions.assertThat(allEmployeesName).isNotNull();
+    String[] listEmployees = allEmployeesName.split(",");
+    Assertions.assertThat(listEmployees).hasSize(10);
   }
 }

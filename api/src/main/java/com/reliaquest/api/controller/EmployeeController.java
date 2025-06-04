@@ -1,11 +1,18 @@
 package com.reliaquest.api.controller;
 
+import static com.reliaquest.api.utils.EmployeeConstants.FAILED_TO_CREATE_NEW_EMPLOYEE;
+import static com.reliaquest.api.utils.EmployeeConstants.FAILED_TO_DELETE_EMPLOYEE;
+import static com.reliaquest.api.utils.EmployeeConstants.FAILED_TO_FETCH_HIGHEST_SALARY;
+import static com.reliaquest.api.utils.EmployeeConstants.FAILED_TO_FETCH_TOP_TEN_HIGHEST_SALARY;
+
 import com.reliaquest.api.data.EmployeeRequest;
 import com.reliaquest.api.service.IEmployeeService;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -13,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class EmployeeController implements IEmployeeController<EmployeeRequest, EmployeeRequest> {
 
   private static final Logger logger = LoggerFactory.getLogger(EmployeeController.class);
+  private static final String X_ERROR_MESSAGE = "X-Error-Message";
   IEmployeeService employeeService;
 
   @Autowired
@@ -70,7 +78,12 @@ public class EmployeeController implements IEmployeeController<EmployeeRequest, 
         .exceptionally(t -> {
           logger.error(
               "EmployeeController#getHighestSalaryOfEmployees Error fetching highest salary", t);
-          return ResponseEntity.internalServerError().build();
+          String errorMessage = FAILED_TO_FETCH_HIGHEST_SALARY + t.getMessage();
+          HttpHeaders headers = new HttpHeaders();
+          headers.add(X_ERROR_MESSAGE, errorMessage);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .headers(headers)
+              .body(-1);
         })
         .join();
   }
@@ -84,7 +97,12 @@ public class EmployeeController implements IEmployeeController<EmployeeRequest, 
           logger.error(
               "EmployeeController#getTopTenHighestEarningEmployeeNames Error fetching top 10 highest earning employee info",
               t);
-          return ResponseEntity.internalServerError().build();
+          String errorMessage = FAILED_TO_FETCH_TOP_TEN_HIGHEST_SALARY + t.getMessage();
+          HttpHeaders headers = new HttpHeaders();
+          headers.add(X_ERROR_MESSAGE, errorMessage);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .headers(headers)
+              .build();
         })
         .join();
   }
@@ -95,11 +113,12 @@ public class EmployeeController implements IEmployeeController<EmployeeRequest, 
         .createEmployee(employeeRequestInput)
         .thenApply(ResponseEntity::ok)
         .exceptionally(t -> {
-          logger.error(
-              "EmployeeController#createEmployee Error creating new employee:{}",
-              employeeRequestInput,
-              t);
-          return ResponseEntity.internalServerError().build();
+          String errorMessage = FAILED_TO_CREATE_NEW_EMPLOYEE + t.getMessage();
+          HttpHeaders headers = new HttpHeaders();
+          headers.add(X_ERROR_MESSAGE, errorMessage);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .headers(headers)
+              .build();
         })
         .join();
   }
@@ -112,7 +131,12 @@ public class EmployeeController implements IEmployeeController<EmployeeRequest, 
         .exceptionally(t -> {
           logger.error("EmployeeController#deleteEmployeeById Error deleting employee with Id:{}",
               id, t);
-          return ResponseEntity.internalServerError().build();
+          String errorMessage = FAILED_TO_DELETE_EMPLOYEE + t.getMessage();
+          HttpHeaders headers = new HttpHeaders();
+          headers.add(X_ERROR_MESSAGE, errorMessage);
+          return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+              .headers(headers)
+              .build();
         })
         .join();
   }
