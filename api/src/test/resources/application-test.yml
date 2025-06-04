@@ -1,19 +1,18 @@
-spring.application.name: employee-api
-server.port: 8111
 spring:
   datasource:
-    url: jdbc:h2:mem:employee;
+    url: jdbc:h2:mem:employee_test;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
     password:
   jpa:
     hibernate:
-      ddl-auto: update
-    show-sql: false
+      ddl-auto: create-drop  # ensures a fresh schema per test
+    show-sql: true
   h2:
     console:
       enabled: true
+
 logging:
   level:
-    root: ERROR
+    root: WARN
     com.reliaquest: DEBUG

@@ -31,6 +31,7 @@ dependencies {
 
     annotationProcessor platform(org.springframework.boot.gradle.plugin.SpringBootPlugin.BOM_COORDINATES)
     annotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'net.datafaker:datafaker:2.3.1'
 }
 
 tasks.named('test') {
